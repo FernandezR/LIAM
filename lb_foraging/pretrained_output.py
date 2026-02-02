@@ -154,4 +154,4 @@ def pretrained_output(agent_id, input):
         obs = input[0]
         act = Categorical(AGENTS[agent_id-1](obs)[0]).sample()
         return act
-    return AGENTS[agent_id-1]._step(input[1])
+    return AGENTS[agent_id-1]._step(input[1]).value

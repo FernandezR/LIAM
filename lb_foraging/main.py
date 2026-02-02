@@ -66,11 +66,11 @@ def main(args):
             if np.all(dones.detach().numpy()):
                 counter = 0
 
-                obs = envs.reset()
-                agent_obs = torch.FloatTensor([o[1][2] for o in obs])
-                modelled_agent_obs = [torch.FloatTensor(o[0][1]).unsqueeze(0) for o in obs]
+                obs, t_obs = envs.reset()
+                agent_obs = torch.FloatTensor([o[1] for o in obs])
+                modelled_agent_obs = [torch.FloatTensor(o[0]).unsqueeze(0) for o in obs]
                 # we need that for the heuristic agents
-                true_modelled_agent_obs = [o[0][0] for o in obs]
+                true_modelled_agent_obs = [o[0] for o in t_obs]
                 dones = torch.zeros((args['num_processes'], 1))
                 actions = torch.zeros((args['num_processes'], args['action_dim']))
                 episode_passed += 1
@@ -90,18 +90,19 @@ def main(args):
                 value = value[0]
                 modelled_agent_actions = [pretrained_output(t, (o, to)) for t, o, to in zip(tasks, modelled_agent_obs,
                                                                                             true_modelled_agent_obs)]
+                # import pdb; pdb.set_trace()
                 modelled_agent_actions = [F.one_hot(torch.tensor([int(ac)]), 6) for ac in modelled_agent_actions]
                 env_actions = [[modelled_agent_actions[id][0].detach().numpy().argmax(),
                                 actions[id].detach().numpy().argmax()] for id in
                                range(args['num_processes'])]
 
-                next_obs, rewards, next_dones, _ = envs.step(env_actions)
+                next_obs, next_t_obs, rewards, next_dones, _ = envs.step(env_actions)
 
                 next_dones = np.expand_dims(np.array(next_dones)[:, 0], axis=-1)
                 dones = np.logical_or(dones, next_dones)
                 dones = torch.Tensor(dones)
-                next_agent_obs = torch.FloatTensor([o[1][2] for o in next_obs])
-                next_modelled_agent_obs = [torch.FloatTensor(o[0][1]).unsqueeze(0) for o in next_obs]
+                next_agent_obs = torch.FloatTensor([o[1] for o in next_obs])
+                next_modelled_agent_obs = [torch.FloatTensor(o[0]).unsqueeze(0) for o in next_obs]
                 rewards = torch.FloatTensor([r[1] for r in rewards]).unsqueeze(1)
                 average_reward += rewards
                 if counter == args['episode_length']:
@@ -111,7 +112,7 @@ def main(args):
                                      torch.stack(modelled_agent_obs), torch.stack(modelled_agent_actions))
                 agent_obs = next_agent_obs
                 modelled_agent_obs = next_modelled_agent_obs
-                true_modelled_agent_obs = [o[0][0] for o in next_obs]
+                true_modelled_agent_obs = [o[0] for o in next_t_obs]
 
             if np.all(dones.detach().numpy()):
                 last_value = torch.zeros(args['num_processes'], 1)
@@ -141,10 +142,10 @@ def evaluate(agent, args):
     hidden = (torch.zeros((1, 100, args['hidden_dim1'])),
               torch.zeros((1, 100, args['hidden_dim1'])))
     for t in range(args['update_episode']):
-        obs = envs.reset()
-        agent_obs = torch.FloatTensor([o[1][2] for o in obs])
-        modelled_agent_obs = [torch.FloatTensor(o[0][1]).unsqueeze(0) for o in obs]
-        true_modelled_agent_obs = [o[0][0] for o in obs]
+        obs, t_obs = envs.reset()
+        agent_obs = torch.FloatTensor([o[1] for o in obs])
+        modelled_agent_obs = [torch.FloatTensor(o[0]).unsqueeze(0) for o in obs]
+        true_modelled_agent_obs = [o[0] for o in t_obs]
 
         dones = torch.zeros((100, 1))
         actions = torch.zeros((100, args['action_dim']))
@@ -160,7 +161,7 @@ def evaluate(agent, args):
 
             env_actions = [[modelled_agent_actions[id][0].detach().numpy().argmax(),
                             actions[id].detach().numpy().argmax()] for id in range(100)]
-            next_obs, rewards, next_dones, _ = envs.step(env_actions)
+            next_obs, next_t_obs, rewards, next_dones, _ = envs.step(env_actions)
             dones = torch.Tensor(dones)
             rewards = torch.FloatTensor([r[1] for r in rewards]).unsqueeze(1)
             average_reward += rewards * (1 - dones)
@@ -168,9 +169,9 @@ def evaluate(agent, args):
             next_dones = np.expand_dims(np.array(next_dones)[:, 0], axis=-1)
             dones = np.logical_or(dones, next_dones)
 
-            agent_obs = torch.FloatTensor([o[1][2] for o in next_obs])
-            modelled_agent_obs = [torch.FloatTensor(o[0][1]).unsqueeze(0) for o in next_obs]
-            true_modelled_agent_obs = [o[0][0] for o in next_obs]
+            agent_obs = torch.FloatTensor([o[1] for o in next_obs])
+            modelled_agent_obs = [torch.FloatTensor(o[0]).unsqueeze(0) for o in next_obs]
+            true_modelled_agent_obs = [o[0] for o in next_t_obs]
             dones = torch.FloatTensor([d for d in dones]).unsqueeze(1)
 
     return average_reward.mean().item()

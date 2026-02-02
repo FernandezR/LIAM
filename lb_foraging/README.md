@@ -1,6 +1,6 @@
 # LIAM for LB-Foraging
 
-## Installation 
+## Installation
 This environment requires gym version greater or equal than 0.20. You can install using
 ```commandline
 pip install gym==0.21
