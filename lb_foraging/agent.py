@@ -21,6 +21,11 @@ class A2C:
         self.max_grad_norm = max_grad_norm
         self.embedding_dim = embedding_dim
 
+    def cuda(self):
+        self.actor_critic.cuda()
+        self.encoder.cuda()
+        self.decoder.cuda()
+
     def compute_embedding(self, obs, action, hidden):
         input_tensor = torch.cat((obs, action), dim=-1)
         embedding, hidden = self.encoder(input_tensor, hidden)

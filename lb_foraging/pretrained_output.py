@@ -68,6 +68,7 @@ class FCNetwork(nn.Module):
         for target_param, source_param in zip(self.parameters(), source.parameters()):
             target_param.data.copy_((1 - t) * target_param.data + t * source_param.data)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 path = "pretrained/maddpg"
 onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
@@ -91,6 +92,10 @@ for filename in onlyfiles:
     controlled_id = 0
     s, a = state_sizes[controlled_id], action_sizes[controlled_id]
     new_agent = FCNetwork((s.shape[0], *network_size, a.n), dropout=0.1)
+
+    if device.type == 'cuda':
+        new_agent.cuda()
+
     params = data["saved_networks"][best_timestep][controlled_id]
     new_agent.load_state_dict(params)
 
@@ -108,6 +113,11 @@ for filename in onlyfiles:
     print(state_sizes, action_sizes)
     new_agent1 = PolicyNet(state_sizes, hidden_size, action_sizes)
     new_agent2 = PolicyNet(state_sizes, hidden_size, action_sizes)
+
+    if device.type == 'cuda':
+        new_agent1.cuda()
+        new_agent2.cuda()
+
     save_dict = torch.load(path + "/" + filename)['agent_params']
     new_agent1.load_state_dict(save_dict[0]['actor_critic'])
     new_agent2.load_state_dict(save_dict[1]['actor_critic'])
@@ -148,7 +158,7 @@ def pretrained_output(agent_id, input):
     if type(AGENTS[agent_id-1]) is FCNetwork:
         obs = input[0]
         act = onehot_from_logits(AGENTS[agent_id-1](obs), epsilon=0.1)
-        act = act.argmax().detach().numpy()
+        act = act.argmax().detach().cpu().numpy()
         return act
     if type(AGENTS[agent_id-1]) is PolicyNet:
         obs = input[0]

@@ -7,17 +7,18 @@ def _flatten_helper(T, N, _tensor):
 
 class RolloutStorage(object):
     def __init__(self, num_steps, num_processes, obs_shape, action_space, hidden_dim, obs_opp_shape, act_opp_shape):
-        self.obs = torch.zeros(num_steps, num_processes, obs_shape)
-        self.hidden = (torch.zeros((1, num_processes, hidden_dim)),
-                       torch.zeros((1, num_processes, hidden_dim)))
-        self.rewards = torch.zeros(num_steps, num_processes, 1)
-        self.value_preds = torch.zeros(num_steps + 1, num_processes, 1)
-        self.returns = torch.zeros(num_steps + 1, num_processes, 1)
-        self.actions = torch.zeros(num_steps + 1, num_processes, action_space)
-        self.dones = torch.ones(num_steps, num_processes, 1)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.obs = torch.zeros(num_steps, num_processes, obs_shape, device=device)
+        self.hidden = (torch.zeros((1, num_processes, hidden_dim), device=device),
+                       torch.zeros((1, num_processes, hidden_dim), device=device))
+        self.rewards = torch.zeros(num_steps, num_processes, 1, device=device)
+        self.value_preds = torch.zeros(num_steps + 1, num_processes, 1, device=device)
+        self.returns = torch.zeros(num_steps + 1, num_processes, 1, device=device)
+        self.actions = torch.zeros(num_steps + 1, num_processes, action_space, device=device)
+        self.dones = torch.ones(num_steps, num_processes, 1, device=device)
 
-        self.modelled_agent_obs = torch.zeros(num_steps, num_processes, obs_opp_shape)
-        self.modelled_agent_act = torch.zeros(num_steps, num_processes, act_opp_shape)
+        self.modelled_agent_obs = torch.zeros(num_steps, num_processes, obs_opp_shape, device=device)
+        self.modelled_agent_act = torch.zeros(num_steps, num_processes, act_opp_shape, device=device)
         self.num_steps = num_steps
         self.step = 0
 
